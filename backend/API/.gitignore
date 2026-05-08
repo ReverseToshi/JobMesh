@@ -1,0 +1,46 @@
+# Build results
+bin/
+obj/
+dist/
+publish/
+
+# Visual Studio
+.vs/
+.vscode/
+*.user
+*.suo
+*.sln.docstates
+*.userprefs
+
+# Local environment files
+appsettings.Local.json
+appsettings.local.json
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+*.swp
+*.swo
+*~
+.idea/
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Node (if used)
+node_modules/
+
+# Coverage
+coverage/
+*.trx

@@ -1,0 +1,6 @@
+@JobMesh.Api_HostAddress = http://localhost:5198
+
+GET {{JobMesh.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
