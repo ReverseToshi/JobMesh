@@ -2,7 +2,7 @@ namespace JobMesh.Api.Models;
 
 public sealed record JobSubmission
 {
-	public string Id { get; init; }
+	public string Id { get; init; } = string.Empty;
     public string JobType { get; init; } = string.Empty;
 
     public string Payload { get; init; } = string.Empty;

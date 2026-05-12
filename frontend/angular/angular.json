@@ -70,7 +70,8 @@
               "buildTarget": "jobmesh-frontend:build:production"
             },
             "development": {
-              "buildTarget": "jobmesh-frontend:build:development"
+              "buildTarget": "jobmesh-frontend:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"
