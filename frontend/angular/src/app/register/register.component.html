@@ -1,0 +1,30 @@
+<div class="register-container">
+  <h2>Create account</h2>
+
+  <form (ngSubmit)="register()">
+    <label for="username">Username</label>
+    <input id="username" name="username" [(ngModel)]="username" required />
+
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" [(ngModel)]="password" required />
+
+    <label for="confirmPassword">Confirm password</label>
+    <input
+      id="confirmPassword"
+      name="confirmPassword"
+      type="password"
+      [(ngModel)]="confirmPassword"
+      required
+    />
+
+    <button type="submit" [disabled]="loading">Register</button>
+
+    <div class="error" *ngIf="error">{{ error }}</div>
+    <div class="success" *ngIf="success">{{ success }}</div>
+  </form>
+
+  <p class="hint">
+    Already have an account?
+    <a routerLink="/login">Sign in</a>
+  </p>
+</div>

@@ -11,15 +11,17 @@ import { filter } from 'rxjs';
 })
 export class App {
   protected readonly title = signal('JobMesh');
-  protected showLogin = false;
+  protected showAuthPages = false;
 
   constructor(private router: Router) {
     // set initial state
-    this.showLogin = this.router.url.startsWith('/login');
+    this.showAuthPages =
+      this.router.url.startsWith('/login') || this.router.url.startsWith('/register');
 
     // update on navigation
     this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe((ev) => {
-      this.showLogin = ev.urlAfterRedirects.startsWith('/login');
+      this.showAuthPages =
+        ev.urlAfterRedirects.startsWith('/login') || ev.urlAfterRedirects.startsWith('/register');
     });
   }
 }
