@@ -1,20 +1,43 @@
-<div class="dashboard-container">
-  <header class="dashboard-header">
-    <h1>Dashboard</h1>
-    <button class="logout-btn" (click)="logout()">Logout</button>
+<div class="dashboard-page" [class.dark]="theme === 'dark'" [class.light]="theme === 'light'">
+  <header class="topbar">
+    <div class="brand-block">
+      <div class="brand-mark">JM</div>
+      <div>
+        <p class="eyebrow">Distributed task queue</p>
+        <h1>JobMesh Dashboard</h1>
+      </div>
+    </div>
+
+    <div class="profile-chip">
+      <span class="avatar">{{ currentUser.charAt(0) }}</span>
+      <span>{{ currentUser }}</span>
+      <button type="button" class="theme-btn" (click)="toggleTheme()">
+        {{ theme === 'light' ? 'Dark mode' : 'Light mode' }}
+      </button>
+      <button type="button" class="logout-btn" (click)="logout()">Logout</button>
+    </div>
   </header>
 
-  <main class="dashboard-content">
-    <section class="token-section">
-      <h2>Auth Token</h2>
-      <p class="token-label">Your JWT token:</p>
-      <code class="token-display">{{ token }}</code>
-    </section>
+  <section class="hero-panel">
+    <div>
+      <p class="eyebrow">System navigation</p>
+      <h2>Every dashboard section now lives on its own page.</h2>
+      <p class="hero-copy">
+        Choose a monitoring area to inspect live operations, tasks, workers, logs, and platform controls.
+      </p>
+    </div>
+    <div class="hero-note">
+      <strong>Recommended build order</strong>
+      <p>Start with queue monitoring, worker monitoring, and task history before adding analytics and alerts.</p>
+    </div>
+  </section>
 
-    <section class="welcome-section">
-      <h2>Welcome</h2>
-      <p>You have successfully logged in to JobMesh.</p>
-      <p>Your token is securely stored in your browser's local storage and will be sent with authenticated API requests.</p>
-    </section>
-  </main>
+  <section class="section-grid">
+    <a class="section-card" *ngFor="let section of sections" [routerLink]="section.path">
+      <p class="eyebrow">Dashboard page</p>
+      <h3>{{ section.title }}</h3>
+      <p>{{ section.summary }}</p>
+      <span>Open page</span>
+    </a>
+  </section>
 </div>

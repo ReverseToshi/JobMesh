@@ -1,10 +1,11 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Component } from '@angular/core';
+import { Component, Inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../services/auth.service';
+import { isPlatformBrowser } from '@angular/common';
 
 interface LoginResponse {
   Message?: string;
@@ -31,6 +32,7 @@ export class LoginComponent {
     private http: HttpClient,
     private authService: AuthService,
     private router: Router,
+    @Inject(PLATFORM_ID) private platformId: Object,
   ) {}
 
   async login() {
@@ -60,8 +62,19 @@ export class LoginComponent {
     } catch (error) {
       if (error instanceof HttpErrorResponse && error.status === 401) {
         this.error = 'Invalid username or password.';
+        if (isPlatformBrowser(this.platformId)) {
+          // show a simple popup so the user notices the auth failure immediately
+          // keep the inline error as well for accessibility
+          // eslint-disable-next-line no-alert
+          alert(this.error);
+        }
       } else {
         this.error = 'Unable to reach the login service. Please try again.';
+        if (isPlatformBrowser(this.platformId)) {
+          // inform user of general connectivity issues as a popup too
+          // eslint-disable-next-line no-alert
+          alert(this.error);
+        }
       }
     } finally {
       this.loading = false;

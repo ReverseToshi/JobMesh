@@ -1,0 +1,52 @@
+<div class="section-page" [class.dark]="theme === 'dark'" [class.light]="theme === 'light'">
+  <header class="topbar">
+    <a class="back-link" routerLink="/dashboard">← Back to dashboard</a>
+    <div class="profile-chip">
+      <span class="avatar">{{ currentUser.charAt(0) }}</span>
+      <span>{{ currentUser }}</span>
+      <button type="button" class="theme-btn" (click)="toggleTheme()">
+        {{ theme === 'light' ? 'Dark mode' : 'Light mode' }}
+      </button>
+      <button type="button" class="logout-btn" (click)="logout()">Logout</button>
+    </div>
+  </header>
+
+  <section class="hero-panel">
+    <div>
+      <p class="eyebrow">Dashboard page</p>
+      <h1>{{ page.title }}</h1>
+      <p class="subtitle">{{ page.subtitle }}</p>
+      <p class="summary">{{ page.summary }}</p>
+    </div>
+  </section>
+
+  <section class="card-grid">
+    <article class="info-card">
+      <h2>What belongs here</h2>
+      <ul>
+        <li *ngFor="let item of page.highlights">{{ item }}</li>
+      </ul>
+    </article>
+
+    <article class="info-card">
+      <h2>Suggested backend APIs</h2>
+      <ul>
+        <li *ngFor="let item of page.backendApis">{{ item }}</li>
+      </ul>
+    </article>
+
+    <article class="info-card">
+      <h2>MVP priorities</h2>
+      <ul>
+        <li *ngFor="let item of page.mvpPriorities">{{ item }}</li>
+      </ul>
+    </article>
+
+    <article class="info-card">
+      <h2>Why this stands out</h2>
+      <ul>
+        <li *ngFor="let item of page.employerWins">{{ item }}</li>
+      </ul>
+    </article>
+  </section>
+</div>
