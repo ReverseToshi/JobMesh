@@ -1,0 +1,55 @@
+<div class="user-dashboard" [class.dark]="theme === 'dark'" [class.light]="theme === 'light'">
+  <header class="topbar">
+    <div class="brand-block">
+      <div class="brand-mark">JM</div>
+      <div>
+        <p class="eyebrow">User dashboard</p>
+        <h1>{{ currentUser }}'s Activity</h1>
+      </div>
+    </div>
+    <div class="profile-chip">
+      <span class="avatar">{{ currentUser.charAt(0) }}</span>
+      <div class="profile-copy">
+        <span class="profile-name">{{ currentUser }}</span>
+        <span class="profile-subtitle">Signed in with your JobMesh token</span>
+      </div>
+      <button type="button" class="theme-btn" (click)="toggleTheme()">
+        {{ theme === 'light' ? 'Dark mode' : 'Light mode' }}
+      </button>
+      <button type="button" class="logout-btn" (click)="logout()">Logout</button>
+    </div>
+  </header>
+
+  <section class="hero-panel">
+    <div>
+      <p class="eyebrow">Activity feed</p>
+      <h2>Your recent actions and job history</h2>
+      <p class="hero-copy">
+        Review your latest submissions, failures, and retries in one place. The page follows the same light and dark
+        theme controls as the main dashboard.
+      </p>
+    </div>
+    <div class="hero-note">
+      <strong>Current theme</strong>
+      <p>{{ theme === 'light' ? 'Light mode is active.' : 'Dark mode is active.' }}</p>
+    </div>
+  </section>
+
+  <section class="content-panel">
+    <div class="content-header">
+      <h3>Recent activity</h3>
+      <span class="count-pill">{{ history.length }} item(s)</span>
+    </div>
+    <div *ngIf="loading" class="loading-state">Loading...</div>
+    <ul *ngIf="!loading" class="history-list">
+      <li *ngFor="let item of history">
+        <div class="time">{{ item.time | date: 'short' }}</div>
+        <div class="meta">
+          <strong>{{ item.title }}</strong>
+          <p class="detail">{{ item.detail }}</p>
+        </div>
+        <div class="status" [ngClass]="item.status">{{ item.status || 'info' }}</div>
+      </li>
+    </ul>
+  </section>
+</div>
