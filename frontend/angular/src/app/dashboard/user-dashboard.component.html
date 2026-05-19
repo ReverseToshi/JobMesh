@@ -37,8 +37,11 @@
 
   <section class="content-panel">
     <div class="content-header">
-      <h3>Recent activity</h3>
-      <span class="count-pill">{{ history.length }} item(s)</span>
+      <div>
+        <h3>Recent activity</h3>
+        <span class="count-pill">{{ history.length }} item(s)</span>
+      </div>
+      <button type="button" class="new-job-btn" (click)="openJobModal()">+ New Job</button>
     </div>
     <div *ngIf="loading" class="loading-state">Loading...</div>
     <ul *ngIf="!loading" class="history-list">
@@ -52,4 +55,73 @@
       </li>
     </ul>
   </section>
+
+  <!-- Job Submission Modal -->
+  <div class="modal-overlay" *ngIf="showJobModal" (click)="closeJobModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Submit New Job</h2>
+        <button type="button" class="modal-close" (click)="closeJobModal()">×</button>
+      </div>
+      <form class="modal-form" (ngSubmit)="submitJob()">
+        <div class="form-group">
+          <label for="jobType">Job Type <span class="required">*</span></label>
+          <input
+            type="text"
+            id="jobType"
+            name="jobType"
+            [(ngModel)]="jobForm.jobType"
+            placeholder="e.g., EmailNotification, DataProcessing"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="payload">Payload (JSON) <span class="required">*</span></label>
+          <textarea
+            id="payload"
+            name="payload"
+            [(ngModel)]="jobForm.payload"
+            placeholder='{"key": "value"}'
+            rows="4"
+            required
+          ></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="priority">Priority</label>
+            <select id="priority" name="priority" [(ngModel)]="jobForm.priority">
+              <option value="Low">Low</option>
+              <option value="Normal">Normal</option>
+              <option value="High">High</option>
+              <option value="Critical">Critical</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="retryCount">Retry Count</label>
+            <input
+              type="number"
+              id="retryCount"
+              name="retryCount"
+              [(ngModel)]="jobForm.retryCount"
+              min="0"
+              max="10"
+              placeholder="0"
+            />
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="closeJobModal()" [disabled]="jobSubmitting">
+            Cancel
+          </button>
+          <button type="submit" class="btn-submit" [disabled]="jobSubmitting">
+            {{ jobSubmitting ? 'Submitting...' : 'Submit Job' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>

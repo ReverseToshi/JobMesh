@@ -1,5 +1,6 @@
 using JobMesh.Api.Endpoints;
 using JobMesh.Api.Business;
+using JobMesh.Api.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +15,10 @@ mySQLHandler.createSchema();
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services
+    .AddAuthentication("JWT")
+    .AddScheme<JwtAuthenticationSchemeOptions, JwtAuthenticationHandler>("JWT", null);
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
@@ -24,6 +29,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapLoginEndpoint();
+app.MapGetUserJobsEndpoint();
+app.MapJobSubmissionEndpoints();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 if (!app.Environment.IsDevelopment())
 {

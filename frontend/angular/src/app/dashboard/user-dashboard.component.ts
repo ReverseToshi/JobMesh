@@ -2,13 +2,14 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Component, Inject, OnInit, PLATFORM_ID } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { ThemeService, ThemeMode } from '../services/theme.service';
 
 @Component({
   selector: 'user-dashboard-page',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './user-dashboard.component.html',
   styleUrls: ['./user-dashboard.component.scss'],
 })
@@ -17,6 +18,14 @@ export class UserDashboardComponent implements OnInit {
   history: Array<{ time: string; title: string; detail: string; status?: string }> = [];
   loading = true;
   theme: ThemeMode = 'light';
+  showJobModal = false;
+  jobSubmitting = false;
+  jobForm = {
+    jobType: '',
+    payload: '',
+    priority: 'Normal',
+    retryCount: 0,
+  };
 
   constructor(
     private auth: AuthService,
@@ -44,7 +53,7 @@ export class UserDashboardComponent implements OnInit {
       Authorization: `Bearer ${token}`,
     });
 
-    this.http.get<any[]>('/api/user/history', { headers }).subscribe({
+    this.http.get<any[]>('/api/my/jobs', { headers }).subscribe({
       next: (data) => {
         this.history = (data || []).map((d) => ({
           time: d.time ?? new Date().toISOString(),
@@ -56,11 +65,7 @@ export class UserDashboardComponent implements OnInit {
       },
       error: () => {
         // fallback sample data
-        this.history = [
-          { time: new Date().toISOString(), title: 'Submitted job', detail: 'Job #12345 submitted', status: 'completed' },
-          { time: new Date().toISOString(), title: 'Job failed', detail: 'Job #12344 failed with error', status: 'failed' },
-          { time: new Date().toISOString(), title: 'Job retried', detail: 'Job #12343 retried', status: 'retry' },
-        ];
+        this.history = [];
         this.loading = false;
       },
     });
@@ -74,6 +79,70 @@ export class UserDashboardComponent implements OnInit {
   logout(): void {
     this.auth.clearToken();
     this.router.navigate(['/login']);
+  }
+
+  openJobModal(): void {
+    this.showJobModal = true;
+  }
+
+  closeJobModal(): void {
+    this.showJobModal = false;
+    this.resetJobForm();
+  }
+
+  resetJobForm(): void {
+    this.jobForm = {
+      jobType: '',
+      payload: '',
+      priority: 'Normal',
+      retryCount: 0,
+    };
+  }
+
+  async submitJob(): Promise<void> {
+    if (!this.jobForm.jobType || !this.jobForm.payload) {
+      alert('Please fill in Job Type and Payload fields.');
+      return;
+    }
+
+    this.jobSubmitting = true;
+    try {
+      const token = this.auth.getToken();
+      if (!token) {
+        this.router.navigate(['/login']);
+        return;
+      }
+
+      const headers = new HttpHeaders({
+        Authorization: `Bearer ${token}`,
+      });
+
+      const jobPayload = {
+        jobType: this.jobForm.jobType,
+        payload: this.jobForm.payload,
+        priority: this.jobForm.priority,
+        retryCount: this.jobForm.retryCount,
+      };
+
+      await new Promise((resolve, reject) => {
+        this.http.post('/api/jobs', jobPayload, { headers }).subscribe({
+          next: () => {
+            alert('Job submitted successfully!');
+            this.closeJobModal();
+            resolve(true);
+            // Optionally refresh history here
+          },
+          error: (err) => {
+            alert('Failed to submit job: ' + (err.error?.message || 'Unknown error'));
+            reject(err);
+          },
+        });
+      });
+    } catch (error) {
+      console.error('Job submission error:', error);
+    } finally {
+      this.jobSubmitting = false;
+    }
   }
 
   private decodeUserFromToken(token: string): string | null {

@@ -2,6 +2,7 @@ using System;
 using System.Text;
 using JobMesh.Api.Models;
 using JobMesh.Api.Business;
+using JobMesh.Api.Infrastructure;
 
 namespace JobMesh.Api.Endpoints;
 
@@ -41,15 +42,3 @@ public static class LoginEndpoint
     }
 }
 
-// Minimal JwtHandler fallback for generating a simple token when a shared handler
-// is not available in the current context. Adjust or remove if a project-wide
-// implementation exists elsewhere.
-internal static class JwtHandler
-{
-    public static string GenerateToken(string username)
-    {
-        // Simple base64 token: username|utcTicks. Replace with real JWT logic as needed.
-        var payload = $"{username}|{DateTime.UtcNow.Ticks}";
-        return Convert.ToBase64String(Encoding.UTF8.GetBytes(payload));
-    }
-}
