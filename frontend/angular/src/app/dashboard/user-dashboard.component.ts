@@ -1,5 +1,5 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { Component, Inject, OnInit, PLATFORM_ID } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, Inject, OnInit, PLATFORM_ID } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -13,7 +13,7 @@ import { ThemeService, ThemeMode } from '../services/theme.service';
   templateUrl: './user-dashboard.component.html',
   styleUrls: ['./user-dashboard.component.scss'],
 })
-export class UserDashboardComponent implements OnInit {
+export class UserDashboardComponent implements OnInit, AfterViewInit {
   currentUser = 'User';
   history: Array<{ time: string; title: string; detail: string; status?: string }> = [];
   loading = true;
@@ -32,6 +32,7 @@ export class UserDashboardComponent implements OnInit {
     private http: HttpClient,
     private router: Router,
     private themeService: ThemeService,
+    private cdr: ChangeDetectorRef,
     @Inject(PLATFORM_ID) private platformId: object,
   ) {}
 
@@ -48,6 +49,26 @@ export class UserDashboardComponent implements OnInit {
 
     this.currentUser = this.decodeUserFromToken(token) || 'User';
     this.theme = this.themeService.getTheme();
+  }
+
+  ngAfterViewInit(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      this.loadHistory();
+    }
+  }
+
+  refreshHistory(): void {
+    this.loadHistory();
+  }
+
+  private loadHistory(): void {
+    const token = this.auth.getToken();
+    if (!token) {
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    this.loading = true;
 
     const headers = new HttpHeaders({
       Authorization: `Bearer ${token}`,
@@ -62,11 +83,13 @@ export class UserDashboardComponent implements OnInit {
           status: d.status,
         }));
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         // fallback sample data
         this.history = [];
         this.loading = false;
+        this.cdr.detectChanges();
       },
     });
   }

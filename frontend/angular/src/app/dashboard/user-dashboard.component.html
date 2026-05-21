@@ -41,7 +41,12 @@
         <h3>Recent activity</h3>
         <span class="count-pill">{{ history.length }} item(s)</span>
       </div>
-      <button type="button" class="new-job-btn" (click)="openJobModal()">+ New Job</button>
+      <div class="content-actions">
+        <button type="button" class="refresh-btn" (click)="refreshHistory()" [disabled]="loading">
+          {{ loading ? 'Refreshing...' : 'Refresh' }}
+        </button>
+        <button type="button" class="new-job-btn" (click)="openJobModal()">+ New Job</button>
+      </div>
     </div>
     <div *ngIf="loading" class="loading-state">Loading...</div>
     <ul *ngIf="!loading" class="history-list">
