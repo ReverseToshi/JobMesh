@@ -54,7 +54,7 @@ export class LoginComponent {
         this.username = '';
         this.password = '';
         setTimeout(() => {
-          this.router.navigate(['/dashboard']);
+          this.router.navigate(['/dashboard/user']);
         }, 500);
       } else {
         this.error = 'Login response missing token. Please try again.';

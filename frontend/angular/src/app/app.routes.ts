@@ -194,5 +194,9 @@ export const routes: Routes = [
 		path: 'dashboard',
 		loadComponent: () => import('./dashboard/dashboard.component').then((m) => m.DashboardComponent),
 	},
+	{
+		path: 'dashboard/user',
+		loadComponent: () => import('./dashboard/user-dashboard.component').then((m) => m.UserDashboardComponent),
+	},
 	...dashboardSectionRoutes,
 ];

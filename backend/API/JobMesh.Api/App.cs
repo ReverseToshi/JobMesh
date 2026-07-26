@@ -1,5 +1,10 @@
 using JobMesh.Api.Endpoints;
 using JobMesh.Api.Business;
+using JobMesh.Api.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication;
+using JobMesh.Api.Data;
+using JobMesh.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,13 +12,26 @@ LoadDotEnv(Path.Combine(builder.Environment.ContentRootPath, ".env"));
 LoadDotEnv(Path.Combine(builder.Environment.ContentRootPath, "..", ".env"));
 LoadDotEnv(Path.Combine(Directory.GetCurrentDirectory(), ".env"));
 
-var mySQLHandler = new MySQLHandler();
-mySQLHandler.TestConnection();
-mySQLHandler.createSchema();
+
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services
+    .AddAuthentication("JWT")
+    .AddScheme<JwtAuthenticationSchemeOptions, JwtAuthenticationHandler>("JWT", null);
+builder.Services.AddAuthorization();
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    options.UseMySql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        ServerVersion.AutoDetect(
+            builder.Configuration.GetConnectionString("DefaultConnection")
+        )
+    );
+});
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<JobService>();
 
 var app = builder.Build();
 
@@ -24,6 +42,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapLoginEndpoint();
+app.MapGetUserJobsEndpoint();
+app.MapJobSubmissionEndpoints();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 if (!app.Environment.IsDevelopment())
 {
