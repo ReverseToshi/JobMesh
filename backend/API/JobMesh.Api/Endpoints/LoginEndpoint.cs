@@ -3,20 +3,28 @@ using System.Text;
 using JobMesh.Api.Models;
 using JobMesh.Api.Business;
 using JobMesh.Api.Infrastructure;
+using JobMesh.Api.Data;
+using JobMesh.Api.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace JobMesh.Api.Endpoints;
 
 public static class LoginEndpoint
 {
+
     public static WebApplication MapLoginEndpoint(this WebApplication app)
     {
-        app.MapPost("/api/login", (LoginData loginData) =>
+        app.MapPost("/api/login", async (LoginData loginData, UserService userService) =>
         {
-            var mySQLHandler = new MySQLHandler();
-            var passwordHash = mySQLHandler.GetUserPasswordHash(loginData.Username);
-            
-            String hashedPassword = Hash.Create(loginData.Password);
-            if (passwordHash == null || !Hash.Verify(loginData.Password, passwordHash)){
+
+            var user = await userService.GetUserByUsernameAsync(loginData.Username);
+            if (user == null)
+            {
+                return Results.Unauthorized();
+            }
+
+            if (!Hash.Verify(loginData.Password, user.PasswordHash))
+                {   
                 return Results.Unauthorized();
             }else{
                 var token = JwtHandler.GenerateToken(loginData.Username);
@@ -24,17 +32,22 @@ public static class LoginEndpoint
             }
         });
 
-        app.MapPost("/api/register", (LoginData loginData) =>
+        app.MapPost("/api/register", async (LoginData loginData, UserService userService) =>
         {
-            var mySQLHandler = new MySQLHandler();
             var passwordHash = Hash.Create(loginData.Password);
 
             // InsertUser returns a boolean; check the result and handle failure accordingly.
-            if (!mySQLHandler.InsertUser(loginData.Username, passwordHash))
+            var user = new User
             {
-                return Results.BadRequest(new { Message = "Failed to register user." });
+                Username = loginData.Username,
+                PasswordHash = passwordHash
+            };
+            if (await userService.GetUserByUsernameAsync(loginData.Username) != null)
+            {
+                return Results.BadRequest(new { Message = "Username already exists" });
             }
 
+            await userService.CreateUserAsync(user);
             return Results.Ok(new { Message = "User registered successfully!" });
         });
 

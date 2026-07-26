@@ -39,11 +39,10 @@
     <div class="content-header">
       <div>
         <h3>Recent activity</h3>
-        <span class="count-pill">{{ history.length }} item(s)</span>
       </div>
       <div class="content-actions">
-        <button type="button" class="refresh-btn" (click)="refreshHistory()" [disabled]="loading">
-          {{ loading ? 'Refreshing...' : 'Refresh' }}
+        <button type="button" class="refresh-btn" (click)="refreshHistory()">
+          Refresh
         </button>
         <button type="button" class="new-job-btn" (click)="openJobModal()">+ New Job</button>
       </div>
@@ -51,12 +50,12 @@
     <div *ngIf="loading" class="loading-state">Loading...</div>
     <ul *ngIf="!loading" class="history-list">
       <li *ngFor="let item of history">
-        <div class="time">{{ item.time | date: 'short' }}</div>
         <div class="meta">
-          <strong>{{ item.title }}</strong>
-          <p class="detail">{{ item.detail }}</p>
+          <strong>{{ item.name }}</strong>
+          <p class="type">{{ item.type }}</p>
         </div>
-        <div class="status" [ngClass]="item.status">{{ item.status || 'info' }}</div>
+        <div class="priority" [ngClass]="item.priority">{{ item.priority || 'Normal' }}</div>
+        <div class="status" [ngClass]="item.status">{{ item.status || 'Pending' }}</div>
       </li>
     </ul>
   </section>

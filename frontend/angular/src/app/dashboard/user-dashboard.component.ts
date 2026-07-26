@@ -1,5 +1,5 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { AfterViewInit, ChangeDetectorRef, Component, Inject, OnInit, PLATFORM_ID } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnInit, PLATFORM_ID } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -13,10 +13,10 @@ import { ThemeService, ThemeMode } from '../services/theme.service';
   templateUrl: './user-dashboard.component.html',
   styleUrls: ['./user-dashboard.component.scss'],
 })
-export class UserDashboardComponent implements OnInit, AfterViewInit {
+export class UserDashboardComponent implements OnInit {
   currentUser = 'User';
-  history: Array<{ time: string; title: string; detail: string; status?: string }> = [];
-  loading = true;
+  history: Array<{ name: string; type: string; status?: string; priority?: string }> = [];
+  loading = false;
   theme: ThemeMode = 'light';
   showJobModal = false;
   jobSubmitting = false;
@@ -49,12 +49,7 @@ export class UserDashboardComponent implements OnInit, AfterViewInit {
 
     this.currentUser = this.decodeUserFromToken(token) || 'User';
     this.theme = this.themeService.getTheme();
-  }
-
-  ngAfterViewInit(): void {
-    if (isPlatformBrowser(this.platformId)) {
-      this.loadHistory();
-    }
+    this.loadHistory();
   }
 
   refreshHistory(): void {
@@ -68,28 +63,25 @@ export class UserDashboardComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    this.loading = true;
-
     const headers = new HttpHeaders({
       Authorization: `Bearer ${token}`,
     });
 
+    this.loading = true;
     this.http.get<any[]>('/api/my/jobs', { headers }).subscribe({
       next: (data) => {
-        this.history = (data || []).map((d) => ({
-          time: d.time ?? new Date().toISOString(),
-          title: d.title ?? d.action ?? 'Activity',
-          detail: d.detail ?? d.description ?? JSON.stringify(d),
+        const newData = (data || []).map((d) => ({
+          name: d.type ?? 'Job',
+          type: d.jobType ?? 'Standard',
           status: d.status,
+          priority: d.priority,
         }));
+        this.history.splice(0, this.history.length, ...newData);
         this.loading = false;
-        this.cdr.detectChanges();
       },
       error: () => {
-        // fallback sample data
-        this.history = [];
+        this.history.splice(0, this.history.length);
         this.loading = false;
-        this.cdr.detectChanges();
       },
     });
   }
@@ -179,3 +171,4 @@ export class UserDashboardComponent implements OnInit, AfterViewInit {
     }
   }
 }
+
