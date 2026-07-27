@@ -1,10 +1,26 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnInit, PLATFORM_ID } from '@angular/core';
+import { ChangeDetectorRef, Component, Inject, NgZone, OnInit, PLATFORM_ID } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { ThemeService, ThemeMode } from '../services/theme.service';
+
+interface JobItem {
+  name: string;
+  type: string;
+  status?: string;
+  priority?: string;
+  createdAt?: string;
+  completedAt?: string;
+}
+
+interface JobForm {
+  jobType: string;
+  payload: string;
+  priority: string;
+  retryCount: number;
+}
 
 @Component({
   selector: 'user-dashboard-page',
@@ -15,12 +31,12 @@ import { ThemeService, ThemeMode } from '../services/theme.service';
 })
 export class UserDashboardComponent implements OnInit {
   currentUser = 'User';
-  history: Array<{ name: string; type: string; status?: string; priority?: string }> = [];
+  history: JobItem[] = [];
   loading = false;
   theme: ThemeMode = 'light';
   showJobModal = false;
   jobSubmitting = false;
-  jobForm = {
+  jobForm: JobForm = {
     jobType: '',
     payload: '',
     priority: 'Normal',
@@ -33,29 +49,32 @@ export class UserDashboardComponent implements OnInit {
     private router: Router,
     private themeService: ThemeService,
     private cdr: ChangeDetectorRef,
+    private ngZone: NgZone,
     @Inject(PLATFORM_ID) private platformId: object,
   ) {}
 
   ngOnInit(): void {
+    // Check if running in browser
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
 
+    // Check for valid token
     const token = this.auth.getToken();
     if (!token) {
       this.router.navigate(['/login']);
       return;
     }
 
+    // Initialize component
     this.currentUser = this.decodeUserFromToken(token) || 'User';
     this.theme = this.themeService.getTheme();
     this.loadHistory();
   }
 
-  refreshHistory(): void {
-    this.loadHistory();
-  }
-
+  /**
+   * Load user's job history from API
+   */
   private loadHistory(): void {
     const token = this.auth.getToken();
     if (!token) {
@@ -65,46 +84,78 @@ export class UserDashboardComponent implements OnInit {
 
     const headers = new HttpHeaders({
       Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
     });
 
     this.loading = true;
+
     this.http.get<any[]>('/api/my/jobs', { headers }).subscribe({
       next: (data) => {
-        const newData = (data || []).map((d) => ({
-          name: d.type ?? 'Job',
-          type: d.jobType ?? 'Standard',
-          status: d.status,
-          priority: d.priority,
-        }));
-        this.history.splice(0, this.history.length, ...newData);
-        this.loading = false;
+        this.ngZone.run(() => {
+          this.history = (data || []).map((job) => ({
+            name: job.type || 'Job',
+            type: job.jobType || 'Standard',
+            status: job.status || 'Pending',
+            priority: job.priority || 'Normal',
+            createdAt: job.createdAt,
+            completedAt: job.completedAt,
+          }));
+          this.loading = false;
+          this.cdr.markForCheck();
+        });
       },
-      error: () => {
-        this.history.splice(0, this.history.length);
-        this.loading = false;
+      error: (error) => {
+        this.ngZone.run(() => {
+          console.error('Failed to load jobs:', error);
+          this.history = [];
+          this.loading = false;
+          this.cdr.markForCheck();
+        });
       },
     });
   }
 
+  /**
+   * Refresh the job history
+   */
+  refreshHistory(): void {
+    this.loadHistory();
+  }
+
+  /**
+   * Toggle between light and dark theme
+   */
   toggleTheme(): void {
     this.themeService.toggleTheme();
     this.theme = this.themeService.getTheme();
   }
 
+  /**
+   * Logout user and redirect to login page
+   */
   logout(): void {
     this.auth.clearToken();
     this.router.navigate(['/login']);
   }
 
+  /**
+   * Open job submission modal
+   */
   openJobModal(): void {
     this.showJobModal = true;
   }
 
+  /**
+   * Close job submission modal
+   */
   closeJobModal(): void {
     this.showJobModal = false;
     this.resetJobForm();
   }
 
+  /**
+   * Reset job form to initial state
+   */
   resetJobForm(): void {
     this.jobForm = {
       jobType: '',
@@ -114,61 +165,72 @@ export class UserDashboardComponent implements OnInit {
     };
   }
 
-  async submitJob(): Promise<void> {
-    if (!this.jobForm.jobType || !this.jobForm.payload) {
+  /**
+   * Submit new job to API
+   */
+  submitJob(): void {
+    // Validate form
+    if (!this.jobForm.jobType.trim() || !this.jobForm.payload.trim()) {
       alert('Please fill in Job Type and Payload fields.');
       return;
     }
 
-    this.jobSubmitting = true;
-    try {
-      const token = this.auth.getToken();
-      if (!token) {
-        this.router.navigate(['/login']);
-        return;
-      }
-
-      const headers = new HttpHeaders({
-        Authorization: `Bearer ${token}`,
-      });
-
-      const jobPayload = {
-        jobType: this.jobForm.jobType,
-        payload: this.jobForm.payload,
-        priority: this.jobForm.priority,
-        retryCount: this.jobForm.retryCount,
-      };
-
-      await new Promise((resolve, reject) => {
-        this.http.post('/api/jobs', jobPayload, { headers }).subscribe({
-          next: () => {
-            alert('Job submitted successfully!');
-            this.closeJobModal();
-            resolve(true);
-            // Optionally refresh history here
-          },
-          error: (err) => {
-            alert('Failed to submit job: ' + (err.error?.message || 'Unknown error'));
-            reject(err);
-          },
-        });
-      });
-    } catch (error) {
-      console.error('Job submission error:', error);
-    } finally {
-      this.jobSubmitting = false;
+    // Get token
+    const token = this.auth.getToken();
+    if (!token) {
+      this.router.navigate(['/login']);
+      return;
     }
+
+    // Prepare headers
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    });
+
+    // Prepare payload
+    const jobPayload = {
+      jobType: this.jobForm.jobType.trim(),
+      payload: this.jobForm.payload.trim(),
+      priority: this.jobForm.priority,
+      retryCount: Number(this.jobForm.retryCount) || 0,
+    };
+
+    this.jobSubmitting = true;
+
+    this.http.post('/api/jobs', jobPayload, { headers }).subscribe({
+      next: () => {
+        this.ngZone.run(() => {
+          alert('Job submitted successfully!');
+          this.closeJobModal();
+          this.loadHistory(); // Refresh the list
+          this.jobSubmitting = false;
+          this.cdr.markForCheck();
+        });
+      },
+      error: (error) => {
+        this.ngZone.run(() => {
+          const errorMessage = error.error?.message || error.message || 'Unknown error';
+          alert(`Failed to submit job: ${errorMessage}`);
+          this.jobSubmitting = false;
+          this.cdr.markForCheck();
+        });
+      },
+    });
   }
 
+  /**
+   * Decode username from JWT token
+   * Token format: base64(username|timestamp)
+   */
   private decodeUserFromToken(token: string): string | null {
     try {
-      // token is a simple base64 payload (username|ticks) in this project
       const decoded = atob(token);
       const [username] = decoded.split('|');
-      return username || null;
-    } catch {
+      return username?.trim() || null;
+    } catch (error) {
+      console.error('Failed to decode token:', error);
       return null;
     }
   }
 }
-

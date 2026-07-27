@@ -48,7 +48,9 @@
       </div>
     </div>
     <div *ngIf="loading" class="loading-state">Loading...</div>
-    <ul *ngIf="!loading" class="history-list">
+
+    <!-- Show list if not loading AND there are items -->
+    <ul *ngIf="!loading && history.length > 0" class="history-list">
       <li *ngFor="let item of history">
         <div class="meta">
           <strong>{{ item.name }}</strong>
@@ -58,6 +60,11 @@
         <div class="status" [ngClass]="item.status">{{ item.status || 'Pending' }}</div>
       </li>
     </ul>
+
+    <!-- Show empty state if not loading AND there are no items -->
+    <div *ngIf="!loading && history.length === 0" class="empty-state">
+      <p>No jobs found. Submit your first job to get started!</p>
+    </div>
   </section>
 
   <!-- Job Submission Modal -->

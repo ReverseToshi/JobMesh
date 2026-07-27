@@ -2,8 +2,8 @@
 
 | ID | Feature | Priority | Status | Description |
 |----|----------|----------|---------|-------------|
-| PL-001 | Project Setup | High | Not Started | Create ASP.NET Core solution, Docker setup, Git repository, CI pipeline. |
-| PL-002 | PostgreSQL Integration | High | Not Started | Configure EF Core and MySQL connection. |
+| PL-001 | Project Setup | High | Finished | Create ASP.NET Core solution, Docker setup, Git repository, CI pipeline. |
+| PL-002 | MySQL Integration | High | Finished | Configure EF Core and MySQL connection. |
 | PL-003 | Redis Integration | High | Not Started | Configure Redis connection and queue infrastructure. |
 | PL-004 | Job Entity | High | Not Started | Create database model for jobs and execution metadata. |
 | PL-005 | Job Submission API | High | Not Started | Endpoint to create and enqueue jobs. |

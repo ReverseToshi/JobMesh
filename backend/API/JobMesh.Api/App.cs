@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication;
 using JobMesh.Api.Data;
 using JobMesh.Api.Services;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,15 +13,14 @@ LoadDotEnv(Path.Combine(builder.Environment.ContentRootPath, ".env"));
 LoadDotEnv(Path.Combine(builder.Environment.ContentRootPath, "..", ".env"));
 LoadDotEnv(Path.Combine(Directory.GetCurrentDirectory(), ".env"));
 
-
-
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+// Add services to the container
 builder.Services.AddOpenApi();
 builder.Services
     .AddAuthentication("JWT")
     .AddScheme<JwtAuthenticationSchemeOptions, JwtAuthenticationHandler>("JWT", null);
 builder.Services.AddAuthorization();
+
+// Database
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseMySql(
@@ -30,12 +30,55 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         )
     );
 });
+
+// Services
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<JobService>();
 
+// ✅ Redis Configuration
+var redisConnectionString = builder.Configuration.GetSection("Redis")["ConnectionString"];
+Console.WriteLine($"[Redis] Connection String: {redisConnectionString}");
+
+if (!string.IsNullOrEmpty(redisConnectionString))
+{
+    try
+    {
+        var options = ConfigurationOptions.Parse(redisConnectionString);
+        options.AbortOnConnectFail = false;
+        options.ConnectTimeout = 5000;
+        options.SyncTimeout = 5000;
+        
+        var connection = ConnectionMultiplexer.Connect(options);
+        
+        builder.Services.AddSingleton<IConnectionMultiplexer>(connection);
+        
+        // Test connection
+        if (connection.IsConnected)
+        {
+            Console.WriteLine("✅ [Redis] Connected successfully");
+        }
+        else
+        {
+            Console.WriteLine("⚠️ [Redis] Connection pending...");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ [Redis] Connection failed: {ex.Message}");
+        // Add a null connection multiplexer so app doesn't crash
+        builder.Services.AddSingleton<IConnectionMultiplexer>(sp => null!);
+    }
+}
+else
+{
+    Console.WriteLine("❌ [Redis] No connection string configured");
+}
+
+builder.Services.AddScoped<RedisQueueService>();
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -44,6 +87,7 @@ if (app.Environment.IsDevelopment())
 app.MapLoginEndpoint();
 app.MapGetUserJobsEndpoint();
 app.MapJobSubmissionEndpoints();
+app.MapRedisHealthCheck();  // ← Add health check endpoint
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -91,5 +135,37 @@ static void LoadDotEnv(string envFilePath)
         }
 
         Environment.SetEnvironmentVariable(key, value);
+    }
+}
+
+// ✅ Health check endpoint
+static class RedisHealthCheck
+{
+    public static WebApplication MapRedisHealthCheck(this WebApplication app)
+    {
+        app.MapGet("/api/health/redis", async (RedisQueueService redisService) =>
+        {
+            try
+            {
+                var queueLength = await redisService.GetQueueLengthAsync("job_queue");
+                return Results.Ok(new
+                {
+                    status = "healthy",
+                    message = "Redis is connected",
+                    queueName = "job_queue",
+                    queueLength = queueLength,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    detail: $"Redis health check failed: {ex.Message}",
+                    statusCode: StatusCodes.Status503ServiceUnavailable
+                );
+            }
+        });
+
+        return app;
     }
 }
