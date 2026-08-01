@@ -36,8 +36,18 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<JobService>();
 
 // ✅ Redis Configuration
+// Priority: appsettings.json > CLOUD_REDIS_URL env var (fallback only)
 var redisConnectionString = builder.Configuration.GetSection("Redis")["ConnectionString"];
-Console.WriteLine($"[Redis] Connection String: {redisConnectionString}");
+
+if (string.IsNullOrEmpty(redisConnectionString))
+{
+    redisConnectionString = Environment.GetEnvironmentVariable("CLOUD_REDIS_URL");
+    Console.WriteLine($"[Redis] Using connection string from CLOUD_REDIS_URL env var");
+}
+else
+{
+    Console.WriteLine($"[Redis] Using connection string from appsettings.json");
+}
 
 if (!string.IsNullOrEmpty(redisConnectionString))
 {
@@ -45,10 +55,25 @@ if (!string.IsNullOrEmpty(redisConnectionString))
     {
         var options = ConfigurationOptions.Parse(redisConnectionString);
         options.AbortOnConnectFail = false;
-        options.ConnectTimeout = 5000;
-        options.SyncTimeout = 5000;
+        options.ConnectTimeout = 10000;
+        options.SyncTimeout = 10000;
+
+        options.Ssl = false; // Enable SSL
         
         var connection = ConnectionMultiplexer.Connect(options);
+
+        connection.ConnectionFailed += (_, args) =>
+        {
+            Console.WriteLine($"❌ Redis Connection Failed:");
+            Console.WriteLine($"Endpoint: {args.EndPoint}");
+            Console.WriteLine($"FailureType: {args.FailureType}");
+            Console.WriteLine($"Exception: {args.Exception}");
+        };
+
+        connection.ConnectionRestored += (_, args) =>
+        {
+            Console.WriteLine($"✅ Redis Connection Restored: {args.EndPoint}");
+        };
         
         builder.Services.AddSingleton<IConnectionMultiplexer>(connection);
         

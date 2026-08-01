@@ -8,7 +8,7 @@ public class User
 
     public string PasswordHash { get; set; } = string.Empty;
 
-    public string Role { get; set; } = "User"; // Default role is "User"
+    public string Role { get; set; } = "User";
 
-    public List<Job> Jobs { get; set; } = new List<Job>();
+    public ICollection<Job> Jobs { get; set; } = new List<Job>();
 }

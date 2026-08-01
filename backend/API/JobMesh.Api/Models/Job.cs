@@ -10,6 +10,10 @@ public class Job
 
     public required string Status { get; set; } // Pending, Running, Completed, Failed
 
+    public string Payload { get; set; } = string.Empty; // JSON string containing job-specific data
+
+    public string Priority { get; set; } = "Normal"; // Normal, High, Low
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime? StartedAt { get; set; }

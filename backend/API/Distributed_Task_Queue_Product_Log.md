@@ -4,9 +4,9 @@
 |----|----------|----------|---------|-------------|
 | PL-001 | Project Setup | High | Finished | Create ASP.NET Core solution, Docker setup, Git repository, CI pipeline. |
 | PL-002 | MySQL Integration | High | Finished | Configure EF Core and MySQL connection. |
-| PL-003 | Redis Integration | High | Not Started | Configure Redis connection and queue infrastructure. |
-| PL-004 | Job Entity | High | Not Started | Create database model for jobs and execution metadata. |
-| PL-005 | Job Submission API | High | Not Started | Endpoint to create and enqueue jobs. |
+| PL-003 | Redis Integration | High | Finished | Configure Redis connection and queue infrastructure. |
+| PL-004 | Job Entity | High | Finished | Create database model for jobs and execution metadata. |
+| PL-005 | Job Submission API | High | 60% | Endpoint to create and enqueue jobs. |
 | PL-006 | Job Status API | High | Not Started | Endpoint to retrieve job status and execution details. |
 | PL-007 | Queue Service | High | Not Started | Service for adding and retrieving jobs from Redis. |
 | PL-008 | Worker Service | High | Not Started | Background service that consumes jobs from Redis. |

@@ -89,7 +89,7 @@ export class UserDashboardComponent implements OnInit {
 
     this.loading = true;
 
-    this.http.get<any[]>('/api/my/jobs', { headers }).subscribe({
+    this.http.get<any[]>('/api/jobs', { headers }).subscribe({
       next: (data) => {
         this.ngZone.run(() => {
           this.history = (data || []).map((job) => ({
@@ -195,6 +195,8 @@ export class UserDashboardComponent implements OnInit {
       priority: this.jobForm.priority,
       retryCount: Number(this.jobForm.retryCount) || 0,
     };
+
+    console.log('Submitting job with payload:', jobPayload);
 
     this.jobSubmitting = true;
 

@@ -2,19 +2,14 @@ using JobMesh.Api.Models;
 using JobMesh.Api.Business;
 using JobMesh.Api.Infrastructure;
 using System.Security.Claims;
-using JobMesh.Api.Data;
 using JobMesh.Api.Services;
-using Microsoft.EntityFrameworkCore;
 
 namespace JobMesh.Api.Endpoints;
 
 public static class JobEndpoints
 {
-    private static ILogger<Program>? _logger;
-
     public static WebApplication MapJobEndpoints(this WebApplication app)
     {
-        _logger = app.Services.GetRequiredService<ILogger<Program>>();
         app.MapJobSubmissionEndpoints();
         app.MapGetUserJobsEndpoint();
         return app;
@@ -28,7 +23,7 @@ public static class JobEndpoints
 
     public static WebApplication MapGetUserJobsEndpoint(this WebApplication app)
     {
-        app.MapGet("/api/my/jobs", GetUserJobsAsync).RequireAuthorization();
+        app.MapGet("/api/jobs", GetUserJobsAsync).RequireAuthorization();
         return app;
     }
 
@@ -36,67 +31,78 @@ public static class JobEndpoints
         HttpContext httpContext,
         JobSubmission submission,
         JobService jobService,
-        UserService userService)
+        UserService userService,
+        ILogger<Program> logger)
     {
-        _logger?.LogInformation("[Job] Submitting new job...");
+        logger.LogInformation("[Endpoint] POST /api/jobs");
 
         var username = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         if (string.IsNullOrEmpty(username))
         {
-            _logger?.LogWarning("[Job] Unauthorized - no username in claims");
+            logger.LogWarning("[Endpoint] Unauthorized - no username");
             return Results.Unauthorized();
         }
 
+        logger.LogInformation($"[Endpoint] Username from token: {username}");
+
+        // ✅ Look up user
         var user = await userService.GetUserByUsernameAsync(username);
+        
         if (user == null)
         {
-            _logger?.LogWarning($"[Job] User not found: {username}");
+            logger.LogError($"[Endpoint] ❌ User not found in database: {username}");
             return Results.Unauthorized();
+        }
+
+        logger.LogInformation($"[Endpoint] ✅ User found: {user.Username} (ID: {user.Id})");
+
+        // ✅ Validate user.Id is not null/empty
+        if (string.IsNullOrEmpty(user.Id))
+        {
+            logger.LogError($"[Endpoint] ❌ User.Id is null or empty for user: {username}");
+            return Results.BadRequest(new { Message = "Invalid user ID" });
         }
 
         var job = new Job
         {
             Id = Guid.NewGuid(),
-            UserId = user.Id,
+            UserId = user.Id,  // ✅ This must exist in Users table
             Type = submission.JobType,
             Status = "Pending",
             CreatedAt = DateTime.UtcNow,
         };
 
-        _logger?.LogInformation($"[Job] Created job object: {job.Id}");
+        logger.LogInformation($"[Endpoint] Creating job: {job.Id} for user: {user.Id}");
 
-        // Save to database
-        var saved = await jobService.CreateJobAsync(job);
-
-        if (saved == null)
-        {
-            _logger?.LogError("[Job] Failed to save job to database");
-            return Results.BadRequest(new { Message = "Failed to save job to database" });
-        }
-
-        _logger?.LogInformation($"[Job] ✅ Job saved to database: {job.Id}");
-
-        // Enqueue to Redis
         try
         {
-            await redisQueueService.EnqueueAsync("job_queue", job.Id.ToString());
-            _logger?.LogInformation($"[Job] ✅ Job enqueued to Redis: {job.Id}");
+            var saved = await jobService.CreateJobAsync(job);
+
+            if (saved == null)
+            {
+                logger.LogError("[Endpoint] Job was not saved");
+                return Results.BadRequest(new { Message = "Failed to save job" });
+            }
+
+            logger.LogInformation($"[Endpoint] ✅ Job created: {job.Id}");
+            return Results.Ok(new { Id = job.Id, Message = "Job submitted successfully!" });
         }
         catch (Exception ex)
         {
-            _logger?.LogError($"[Job] ⚠️ Failed to enqueue to Redis: {ex.Message}");
-            // Don't fail - job is saved in database
+            logger.LogError($"[Endpoint] ❌ Error creating job: {ex.Message}");
+            return Results.BadRequest(new { Message = $"Failed to create job: {ex.Message}" });
         }
-
-        return Results.Ok(new { Id = job.Id, Message = "Job submitted successfully!" });
     }
 
     private static async Task<IResult> GetUserJobsAsync(
         HttpContext httpContext,
         JobService jobService,
-        UserService userService)
+        UserService userService,
+        ILogger<Program> logger)
     {
+        logger.LogInformation("[Endpoint] GET /api/my/jobs");
+
         var username = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         if (string.IsNullOrEmpty(username))
@@ -105,12 +111,21 @@ public static class JobEndpoints
         }
 
         var user = await userService.GetUserByUsernameAsync(username);
+        
         if (user == null)
         {
+            logger.LogWarning($"[Endpoint] User not found: {username}");
             return Results.Unauthorized();
         }
 
+        if (string.IsNullOrEmpty(user.Id))
+        {
+            logger.LogError($"[Endpoint] User.Id is null for: {username}");
+            return Results.BadRequest(new { Message = "Invalid user ID" });
+        }
+
         var jobs = await jobService.GetUserJobsAsync(user.Id);
+
         return Results.Ok(jobs);
     }
 }
